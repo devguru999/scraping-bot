@@ -8,6 +8,8 @@ module.exports = (file, data) => {
 
     const writer = csvWriter();
     writer.pipe(fs.createWriteStream('./log/' + file));
-    writer.write(data);
+    data.forEach(obj => {
+        writer.write(obj);        
+    });
     writer.end();
 }
