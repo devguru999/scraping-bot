@@ -76,7 +76,7 @@ const getPureInfo = async (res) => {
 
 const getDetails = async (item) => {
     
-    console.error(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
+    console.log(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
     await nightmare.goto(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
     
     let success = false;
@@ -100,7 +100,9 @@ const getDetails = async (item) => {
         }
     }
 
-    return item;
+    console.warn(result);
+
+    return result;
 }
 
 module.exports = async (url) => {
