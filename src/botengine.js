@@ -78,6 +78,7 @@ const getDetails = async (item) => {
     
     console.log(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
     await nightmare.goto(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
+    await nightmare.wait('.content-detail');
     
     let success = false;
     while (!success) {
