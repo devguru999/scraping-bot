@@ -83,10 +83,10 @@ const getDetails = async (item) => {
     while (!success) {
         try {
             result = await nightmare.evaluate((item) => {
-                item.product_description = document.querySelector('.content-detail').innerText;
+                item.product_description = document.querySelector('.content-detail').innerText | '';
                 item.product_pictures = Array.from(document.querySelectorAll('img.detail-gallery-img')).map(el => el.getAttribute('src')).join(',');
-                item.product_review = document.querySelector('.title-info-number').innerText;
-                item.product_evaluation = document.querySelector('.offer-attr').innerText;
+                item.product_review = document.querySelector('.title-info-number').innerText | '';
+                item.product_evaluation = document.querySelector('.offer-attr').innerText | '';
                 item.seller_review = "";
                 item.manufacturer_rating = "";
     
