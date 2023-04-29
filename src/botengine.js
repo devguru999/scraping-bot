@@ -83,10 +83,13 @@ const getDetails = async (item) => {
     while (!success) {
         try {
             result = await nightmare.evaluate((item) => {
-                item.product_description = document.querySelector('.content-detail').innerText | '';
+                try {item.product_description = document.querySelector('.content-detail').innerText;}
+                catch (e) {item.product_description = ''}
                 item.product_pictures = Array.from(document.querySelectorAll('img.detail-gallery-img')).map(el => el.getAttribute('src')).join(',');
-                item.product_review = document.querySelector('.title-info-number').innerText | '';
-                item.product_evaluation = document.querySelector('.offer-attr').innerText | '';
+                try {item.product_review = document.querySelector('.title-info-number').innerText;}
+                catch (e) {item.product_review = ''}
+                try {item.product_evaluation = document.querySelector('.offer-attr').innerText;}
+                catch (e) {item.product_evaluation = ''}
                 item.seller_review = "";
                 item.manufacturer_rating = "";
     
