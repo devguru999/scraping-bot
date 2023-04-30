@@ -1,4 +1,6 @@
-const nightmare = require('nightmare')({show: true})
+const nightmare = require('nightmare')({
+    show: true, waitTimeout: 1800000
+})
 
 const scrollToBottom = async () => {
     let pageHeight, success = false;
@@ -79,18 +81,20 @@ const getDetails = async (item) => {
     console.log(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
     await nightmare.goto(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
     await nightmare.wait('.content-detail');
-    
+
     let success = false;
     while (!success) {
         try {
             result = await nightmare.evaluate((item) => {
                 try {item.product_description = document.querySelector('.content-detail').innerText;}
                 catch (e) {item.product_description = ''}
+                item.product_description.replace('/[\n\t]/g', '');
                 item.product_pictures = Array.from(document.querySelectorAll('img.detail-gallery-img')).map(el => el.getAttribute('src')).join(',');
                 try {item.product_review = document.querySelector('.title-info-number').innerText;}
                 catch (e) {item.product_review = ''}
                 try {item.product_evaluation = document.querySelector('.offer-attr').innerText;}
                 catch (e) {item.product_evaluation = ''}
+                item.product_evaluation.replace('/[\n\t]/g', '');
                 item.seller_review = "";
                 item.manufacturer_rating = "";
     
