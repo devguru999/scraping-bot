@@ -1,57 +1,55 @@
-const nightmare = require('nightmare')({
-    show: true, waitTimeout: 1800000
-})
+const puppeteer = require('puppeteer');
 
-const scrollToBottom = async () => {
-    let pageHeight, success = false;
-    while (!success) {
-        try {
-            pageHeight = await nightmare.evaluate(() => {
-                return document.body.scrollHeight;
-            });
+const autoScroll = async (page) => {
+    await page.evaluate(async () => {
+        await new Promise((resolve) => {
+            var totalHeight = 0;
+            var distance = 100;
+            var timer = setInterval(() => {
+                var scrollHeight = document.body.scrollHeight;
+                window.scrollBy(0, distance);
+                totalHeight += distance;
 
-            success = true;
-        } catch (e) {
-            console.error(`Error in evaluate: ${e}`);
-            await nightmare.wait(1000);
-        }
-    }
-
-    await nightmare.scrollTo(pageHeight, 0);
+                if(totalHeight >= scrollHeight - window.innerHeight){
+                    clearInterval(timer);
+                    resolve();
+                }
+            }, 100);
+        });
+    });
 }
 
-const getProductCodes = async () => {
-    let result, success = false;
-    while (!success || result.length < 40) {
+const getProductCodes = async (page) => {
+    let result;
+    while ((!result || result.length < 40)) {
         try {
-            result = await nightmare.evaluate(() => {
+            result = await page.evaluate(() => {
                 return Array.from(document.querySelectorAll('ul#sw_maindata_asyncload>li.sm-offerShopwindow3.high')).map((element) => {
                     let ret = {};
-        
+
                     ret.product_code = element.getAttribute('offerid');
-        
+
                     return ret;
                 })
             });
 
-            success = true;
         } catch (e) {
             console.error(`Error in evaluate: ${e}`);
-            await nightmare.wait(1000);
+            await page.waitForTimeout(1000);
         }
-    }    
+    }
 
     result = result.filter(item => item.product_code != null);
 
     return result;
 }
 
-const getPureInfo = async (res) => {
-    let result, success = false;
-    while (!success || result.length < 40) {
+const getPureInfo = async (page, res) => {
+    let result;
+    while (!result || result.length < 40) {
         try {
-            result = await nightmare.evaluate((res) => {
-                return Array.from(res).map(item => {            
+            result = await page.evaluate((res) => {
+                return Array.from(res).map(item => {
                     item.product_name = document.querySelector(`li[offerid="${item.product_code}"] .sm-offerShopwindow-title>a`).getAttribute('title');
                     item.product_description = "";
                     item.product_pictures = document.querySelector(`li[offerid="${item.product_code}"] .sm-offerShopwindow-photo img`).getAttribute('src');
@@ -61,50 +59,51 @@ const getPureInfo = async (res) => {
                     item.product_url = document.querySelector(`li[offerid="${item.product_code}"] .sm-offerShopwindow-photo a`).getAttribute('href');
                     item.seller_review = "";
                     item.manufacturer_rating = "";
-        
+
                     return item;
                 })
             }, res);
 
-            success = true;
         } catch (e) {
             console.error(`Error in evaluate: ${e}`);
-            await nightmare.wait(1000);
+            await page.waitForTimeout(1000);
         }
-    }     
+    }
 
     return result;
 }
 
-const getDetails = async (item) => {
-    
-    console.log(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
-    await nightmare.goto(item.product_url.includes('https')?item.product_url:'https:'+item.product_url);
-    await nightmare.wait('.content-detail');
+const getDetails = async (page, item) => {
 
-    let success = false;
-    while (!success) {
+    console.log(item.product_url.includes('https') ? item.product_url : 'https:' + item.product_url);
+    await page.goto(item.product_url.includes('https') ? item.product_url : 'https:' + item.product_url);
+    
+    await autoScroll(page);
+    
+    await page.waitForSelector('.content-detail');
+
+    let result;
+    while (!result) {
         try {
-            result = await nightmare.evaluate((item) => {
-                try {item.product_description = document.querySelector('.content-detail').innerText;}
-                catch (e) {item.product_description = ''}
-                item.product_description.replace('/[\n\t]/g', '');
+            result = await page.evaluate((item) => {
+                try { item.product_description = document.querySelector('.content-detail').innerText; }
+                catch (e) { item.product_description = '' }
+                item.product_description.replace('\n', '');
                 item.product_pictures = Array.from(document.querySelectorAll('img.detail-gallery-img')).map(el => el.getAttribute('src')).join(',');
-                try {item.product_review = document.querySelector('.title-info-number').innerText;}
-                catch (e) {item.product_review = ''}
-                try {item.product_evaluation = document.querySelector('.offer-attr').innerText;}
-                catch (e) {item.product_evaluation = ''}
-                item.product_evaluation.replace('/[\n\t]/g', '');
+                try { item.product_review = document.querySelector('.title-info-number').innerText; }
+                catch (e) { item.product_review = '' }
+                try { item.product_evaluation = document.querySelector('.offer-attr').innerText; }
+                catch (e) { item.product_evaluation = '' }
+                item.product_evaluation.replace('\n', '');
                 item.seller_review = "";
                 item.manufacturer_rating = "";
-    
+
                 return item;
             }, item);
 
-            success = true;
         } catch (e) {
             console.error(`Error in evaluate: ${e}`);
-            await nightmare.wait(1000);
+            await page.waitForTimeout(1000);
         }
     }
 
@@ -115,25 +114,28 @@ const getDetails = async (item) => {
 
 module.exports = async (url) => {
 
-    await nightmare.goto(url);    
-    await nightmare.wait('ul#sw_maindata_asyncload');
-    
+    const browser = await puppeteer.launch({ headless: false });
+    const page = await browser.newPage();
+
+    page.setDefaultTimeout(1800000);
+
+    await page.goto(url);
+    await page.waitForSelector('ul#sw_maindata_asyncload');
+
+    await autoScroll(page);
+
     let result = [];
 
-    await scrollToBottom();
-    
-    await nightmare.wait('ul#sw_maindata_asyncload li[rank="40"]');
+    result = await getProductCodes(page);
 
-    result = await getProductCodes();
-    result = await getPureInfo(result);
+    result = await getPureInfo(page, result);
 
     for (i in result) {
-        result[i] = await getDetails(result[i]);
+        result[i] = await getDetails(page, result[i]);
     }
-    
+
     console.log(result);
-    await nightmare.end();
+    await browser.close();
 
     return result;
-    
 }
