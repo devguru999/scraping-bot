@@ -88,13 +88,13 @@ const getDetails = async (page, item) => {
             result = await page.evaluate((item) => {
                 try { item.product_description = document.querySelector('.content-detail').innerText; }
                 catch (e) { item.product_description = '' }
-                item.product_description.replace('\n', '');
+                item.product_description = item.product_description.replace(/\n/g, '');
                 item.product_pictures = Array.from(document.querySelectorAll('img.detail-gallery-img')).map(el => el.getAttribute('src')).join(',');
                 try { item.product_review = document.querySelector('.title-info-number').innerText; }
                 catch (e) { item.product_review = '' }
                 try { item.product_evaluation = document.querySelector('.offer-attr').innerText; }
                 catch (e) { item.product_evaluation = '' }
-                item.product_evaluation.replace('\n', '');
+                item.product_evaluation = item.product_evaluation.replace(/\n/g, '');
                 item.seller_review = "";
                 item.manufacturer_rating = "";
 
